@@ -1,0 +1,172 @@
+Organizations:
+  - &Org0
+    Name: Org0
+    ID: Org0MSP
+    MSPDir: /tmp/hyperledger/org0/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org0MSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org0MSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org0MSP.admin')"
+    OrdererEndpoints:
+      - orderer1-org0:7050
+  - &Org1
+    Name: Org1
+    ID: Org1MSP
+    MSPDir: /tmp/hyperledger/org1/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org1MSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org1MSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org1MSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org1MSP.member')"
+    AnchorPeers:
+      - Host: peer1-org1
+        Port: 7051
+  - &Org2
+    Name: Org2
+    ID: Org2MSP
+    MSPDir: /tmp/hyperledger/org2/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org2MSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org2MSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org2MSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org2MSP.member')"
+    AnchorPeers:
+      - Host: peer1-org2
+        Port: 7051
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_0: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  TwoOrgsChannel:
+    Consortium: SampleConsortium
+    <<: *ChannelDefaults
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *Org1
+        - *Org2
+      Capabilities:
+        <<: *ApplicationCapabilities
+  SampleMultiNodeEtcdRaft:
+    <<: *ChannelDefaults
+    Capabilities:
+      <<: *ChannelCapabilities
+    Orderer:
+      <<: *OrdererDefaults
+      OrdererType: etcdraft
+      EtcdRaft:
+        Consenters:
+          - Host: orderer1-org0
+            Port: 7050
+            ClientTLSCert: /tmp/hyperledger/org0/orderer1/tls-msp/signcerts/cert.pem
+            ServerTLSCert: /tmp/hyperledger/org0/orderer1/tls-msp/signcerts/cert.pem
+          - Host: orderer2-org0
+            Port: 7050
+            ClientTLSCert: /tmp/hyperledger/org0/orderer2/tls-msp/signcerts/cert.pem
+            ServerTLSCert: /tmp/hyperledger/org0/orderer2/tls-msp/signcerts/cert.pem
+          - Host: orderer3-org0
+            Port: 7050
+            ClientTLSCert: /tmp/hyperledger/org0/orderer3/tls-msp/signcerts/cert.pem
+            ServerTLSCert: /tmp/hyperledger/org0/orderer3/tls-msp/signcerts/cert.pem
+      Addresses:
+        - orderer1-org0:7050
+        - orderer2-org0:7050
+        - orderer3-org0:7050
+      Organizations:
+        - *Org0
+      Capabilities:
+        <<: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - <<: *Org0
+    Consortiums:
+      SampleConsortium:
+        Organizations:
+          - *Org1
+          - *Org2
