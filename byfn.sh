@@ -22,6 +22,7 @@ export CA_VERSION=1.4.7
 export TOOLS_VERSION=2.1.1
 export PEER_VERSION=2.1.1
 export ORDERER_VERSION=2.1.1
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
 # Common functions
 function run_ca() {
@@ -36,6 +37,8 @@ function run_tools() {
 # Clear artifacts
 docker-compose -f docker-compose.yaml down
 rm -rf /tmp/hyperledger/*
+
+docker pull hyperledger/fabric-nodeenv:2.1
 
 # # Stop and remove all docker containers
 # docker stop $(docker ps -aq) || true

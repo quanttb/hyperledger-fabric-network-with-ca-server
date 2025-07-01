@@ -30,13 +30,13 @@ class testContract extends Contract {
 
     await ctx.stub.putState(studentId, Buffer.from(JSON.stringify(marks)));
 
-    console.log("Student Marks added To the ledger Succesfully..");
+    console.log("Student Marks added To the ledger Successfully..");
   }
 
   async deleteMarks(ctx, studentId) {
     await ctx.stub.deleteState(studentId);
 
-    console.log("Student Marks deleted from the ledger Succesfully..");
+    console.log("Student Marks deleted from the ledger Successfully..");
   }
 }
 
