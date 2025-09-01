@@ -1,9 +1,9 @@
-"use strict";
-const { Contract } = require("fabric-contract-api");
+'use strict';
+const { Contract } = require('fabric-contract-api');
 
-class testContract extends Contract {
+class TestContract extends Contract {
   async testGet(ctx) {
-    return JSON.stringify({ testGet: "OK" });
+    return JSON.stringify({ testGet: 'OK' });
   }
 
   async queryBySelector(ctx, selector) {
@@ -14,7 +14,7 @@ class testContract extends Contract {
   async queryMarks(ctx, studentId) {
     let marksAsBytes = await ctx.stub.getState(studentId);
     if (!marksAsBytes || marksAsBytes.toString().length <= 0) {
-      throw new Error("Student with this Id does not exist: ");
+      throw new Error('Student with this Id does not exist: ');
     }
     let marks = JSON.parse(marksAsBytes.toString());
 
@@ -30,14 +30,14 @@ class testContract extends Contract {
 
     await ctx.stub.putState(studentId, Buffer.from(JSON.stringify(marks)));
 
-    console.log("Student Marks added To the ledger Successfully..");
+    console.log('Student Marks added To the ledger Successfully..');
   }
 
   async deleteMarks(ctx, studentId) {
     await ctx.stub.deleteState(studentId);
 
-    console.log("Student Marks deleted from the ledger Successfully..");
+    console.log('Student Marks deleted from the ledger Successfully..');
   }
 }
 
-module.exports = testContract;
+module.exports = TestContract;

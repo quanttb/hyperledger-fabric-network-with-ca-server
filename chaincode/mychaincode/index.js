@@ -1,5 +1,5 @@
 'use strict';
 
-const testContract = require('./logic');
+const TestContract = require('./logic');
 
-module.exports.contracts = [ testContract ];
+module.exports.contracts = [TestContract];
