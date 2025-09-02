@@ -1,0 +1,54 @@
+{
+  "name": "test-network",
+  "version": "1.0.0",
+  "client": {
+    "tlsEnable": true,
+    "adminCredential": {
+      "id": "explorer-admin",
+      "password": "explorer-admin-pw"
+    },
+    "enableAuthentication": false,
+    "organization": "Org1MSP",
+    "channel": "mychannel",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        },
+        "orderer": "300"
+      }
+    }
+  },
+  "channels": {
+    "mychannel": {
+      "peers": {
+        "peer1-org1": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        }
+      }
+    }
+  },
+  "organizations": {
+    "Org1MSP": {
+      "mspid": "Org1MSP",
+      "adminPrivateKey": {
+        "path": "/tmp/crypto/org1/users/admin/msp/keystore/priv_sk"
+      },
+      "peers": ["peer1-org1"],
+      "signedCert": {
+        "path": "/tmp/crypto/org1/users/admin/msp/signcerts/cert.pem"
+      }
+    }
+  },
+  "peers": {
+    "peer1-org1": {
+      "tlsCACerts": {
+        "path": "/tmp/crypto/org1/peers/peer1/tls/ca.crt"
+      },
+      "url": "grpcs://peer1-org1:7051"
+    }
+  }
+}

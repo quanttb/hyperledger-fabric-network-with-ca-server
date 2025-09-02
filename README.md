@@ -1,16 +1,17 @@
-# Hyperledger Fabric 2.0 Network with CA Server
+# Hyperledger Fabric 3.0 Network with CA Server
 
 ## Overview
 
 - Based on [Fabric CA Operations Guide](https://hyperledger-fabric-ca.readthedocs.io/en/latest/operations_guide.html).
-- Hyperledger Fabric version: 2.1.1 and CA version: 1.4.7.
+- Hyperledger Fabric version: 3.1.1 and CA version: 1.5.15.
 - There are 3 organizations in the network:
-  - Org0 (Orderer Org): 3 orderers.
+  - Org0 (Orderer Org): 4 orderers.
   - Org1: 2 peers (using CouchDB).
   - Org2: 2 peers (using CouchDB).
-- There are 3 Root CAs (RCAs) for 3 organzations.
-- And one TLS CA.
-- Tested on MacOS 10.13.6.
+- There are 3 Root CAs (RCAs) for 3 organizations.
+- And one TLS CA (TBA).
+- Include Explorer on port 8080.
+- Tested on MacOS 15.6.1.
 
 ## Prerequisites
 

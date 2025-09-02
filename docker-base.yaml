@@ -42,6 +42,17 @@ services:
       - ORDERER_METRICS_PROVIDER=prometheus
     working_dir: /root
     command: orderer
+    volumes:
+      - /tmp/hyperledger/config:/tmp/hyperledger/config
+    networks:
+      - net
+
+  couchdb-base:
+    image: couchdb:${COUCHDB_VERSION}
+    platform: ${DOCKER_DEFAULT_PLATFORM}
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=admin-pw
     networks:
       - net
 
@@ -71,6 +82,10 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG=
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=admin-pw
     working_dir: /root
     command: peer node start
     volumes:
@@ -82,6 +97,7 @@ services:
     image: hyperledger/fabric-tools:${FABRIC_TOOLS_VERSION}
     platform: ${DOCKER_DEFAULT_PLATFORM}
     tty: true
-    environment:
+    volumes:
+      - ${SCRIPT_DIR}/config:/tmp/hyperledger/config
     networks:
       - net

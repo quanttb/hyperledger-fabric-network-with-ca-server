@@ -1,0 +1,74 @@
+{
+  "name": "test-network",
+  "version": "1.0.0",
+  "client": {
+    "tlsEnable": true,
+    "adminCredential": {
+      "id": "explorer-admin",
+      "password": "explorer-admin-pw"
+    },
+    "caCredential": {
+      "id": "rca-org1-admin",
+      "password": "rca-org1-admin-pw"
+    },
+    "enableAuthentication": false,
+    "organization": "Org1MSP",
+    "channel": "mychannel",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        },
+        "orderer": "300"
+      }
+    }
+  },
+  "channels": {
+    "mychannel": {
+      "peers": {
+        "peer1-org1": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        }
+      },
+      "connection": {
+        "timeout": {
+          "peer": {
+            "endorser": "6000",
+            "eventHub": "6000",
+            "eventReg": "6000"
+          }
+        }
+      }
+    }
+  },
+  "organizations": {
+    "Org1MSP": {
+      "mspid": "Org1MSP",
+      "peers": ["peer1-org1"],
+      "certificateAuthorities": ["rca-org1"]
+    }
+  },
+  "peers": {
+    "peer1-org1": {
+      "tlsCACerts": {
+        "path": "/tmp/crypto/org1/peers/peer1/tls/ca.crt"
+      },
+      "url": "grpcs://peer1-org1:7051"
+    }
+  },
+  "certificateAuthorities": {
+    "rca-org1": {
+      "url": "https://rca-org1:7054",
+      "httpOptions": {
+        "verify": false
+      },
+      "tlsCACerts": {
+        "path": "/tmp/crypto/org1/ca/ca-cert.pem"
+      },
+      "caName": "rca-org1"
+    }
+  }
+}

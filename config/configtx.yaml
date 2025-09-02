@@ -19,7 +19,7 @@ Organizations:
       - orderer3-org0:7050
       - orderer4-org0:7050
   - &Org1
-    Name: Org1
+    Name: Org1MSP
     ID: Org1MSP
     MSPDir: /tmp/hyperledger/org1/msp
     Policies:
@@ -39,7 +39,7 @@ Organizations:
       - Host: peer1-org1
         Port: 7051
   - &Org2
-    Name: Org2
+    Name: Org2MSP
     ID: Org2MSP
     MSPDir: /tmp/hyperledger/org2/msp
     Policies:
