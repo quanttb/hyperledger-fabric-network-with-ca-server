@@ -13,7 +13,7 @@ services:
     extends:
       file: docker-base.yaml
       service: ca-base
-    command: sh -c 'fabric-ca-server start -d -b rca-tls-admin:rca-tls-admin-pw'
+    command: sh -c 'fabric-ca-server start -d -b ca-tls-admin:ca-tls-admin-pw'
     environment:
       - FABRIC_CA_SERVER_CA_NAME=ca-tls
       - FABRIC_CA_SERVER_CSR_HOSTS=ca-tls

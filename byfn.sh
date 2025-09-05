@@ -19,11 +19,15 @@ export COUCHDB_VERSION=3.1.2
 export EXPLORER_DB_VERSION=2.0.0
 export EXPLORER_VERSION=2.0.0
 
-SLEEP_DURATION=2
+SLEEP_DURATION=5
 CHANNEL_NAME="mychannel"
 CHAINCODE_NAME="mychaincode"
 CHAINCODE_VERSION=1
 CHAINCODE_SEQUENCE=1
+
+ORDERERS=(orderer1 orderer2 orderer3 orderer4)
+ORGS=(org1 org2)
+PEERS=(peer1 peer2)
 
 # Helper functions
 function run_ca() {
@@ -57,7 +61,27 @@ mkdir -p /tmp/hyperledger/fabric-ca && mkdir -p /tmp/hyperledger/explorer/wallet
 docker pull hyperledger/fabric-nodeenv:${FABRIC_NODEENV_VERSION}
 
 # Setup CAs
-## TODO: Setup TLS CA
+# TLS CA
+docker-compose -f docker-compose.yaml up -d ca-tls
+sleep ${SLEEP_DURATION}
+
+for ORDERER in ${ORDERERS[@]}; do
+  run_ca "
+    export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/tls/ca-cert.pem && \
+    export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/tls && \
+    fabric-ca-client enroll -u https://ca-tls-admin:ca-tls-admin-pw@ca-tls:7054 --caname ca-tls && \
+    fabric-ca-client register --caname ca-tls --id.name ${ORDERER}-org0 --id.secret ${ORDERER}-org0-pw --id.type orderer"
+done
+
+for ORG in ${ORGS[@]}; do
+  for PEER in ${PEERS[@]}; do
+    run_ca "
+      export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/tls/ca-cert.pem && \
+      export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/tls && \
+      fabric-ca-client enroll -u https://ca-tls-admin:ca-tls-admin-pw@ca-tls:7054 --caname ca-tls && \
+      fabric-ca-client register --caname ca-tls --id.name ${PEER}-${ORG} --id.secret ${PEER}-${ORG}-pw --id.type peer"
+  done
+done
 
 ## Org0
 docker-compose -f docker-compose.yaml up -d rca-org0
@@ -72,12 +96,12 @@ cp ${SCRIPT_DIR}/config/config.yaml /tmp/hyperledger/org0/msp/config.yaml
 mv /tmp/hyperledger/org0/msp/cacerts/* /tmp/hyperledger/org0/msp/cacerts/ca-cert.pem
 
 mkdir -p /tmp/hyperledger/org0/msp/tlscacerts
-cp /tmp/hyperledger/fabric-ca/org0/ca-cert.pem /tmp/hyperledger/org0/msp/tlscacerts/tlsca-cert.pem
+cp /tmp/hyperledger/fabric-ca/tls/ca-cert.pem /tmp/hyperledger/org0/msp/tlscacerts/tlsca-cert.pem
 
 mkdir -p /tmp/hyperledger/org0/tlsca
-cp /tmp/hyperledger/fabric-ca/org0/ca-cert.pem /tmp/hyperledger/org0/tlsca/tlsca-cert.pem
+cp /tmp/hyperledger/fabric-ca/tls/ca-cert.pem /tmp/hyperledger/org0/tlsca/tlsca-cert.pem
 
-for ORDERER in orderer1 orderer2 orderer3 orderer4; do
+for ORDERER in ${ORDERERS[@]}; do
   run_ca "
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/org0/ca-cert.pem && \
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/orderers/${ORDERER} && \
@@ -96,10 +120,10 @@ for ORDERER in orderer1 orderer2 orderer3 orderer4; do
   mv /tmp/hyperledger/org0/orderers/${ORDERER}/msp/signcerts/cert.pem /tmp/hyperledger/org0/orderers/${ORDERER}/msp/signcerts/${ORDERER}-org0-cert.pem
 
   run_ca "
-    export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/org0/ca-cert.pem && \
+    export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/tls/ca-cert.pem && \
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/orderers/${ORDERER} && \
     export FABRIC_CA_CLIENT_MSPDIR=tls && \
-    fabric-ca-client enroll -u https://${ORDERER}-org0:${ORDERER}-org0-pw@rca-org0:7054 --caname rca-org0 \
+    fabric-ca-client enroll -u https://${ORDERER}-org0:${ORDERER}-org0-pw@ca-tls:7054 --caname ca-tls \
       --enrollment.profile tls --csr.hosts ${ORDERER}-org0"
 
   cp /tmp/hyperledger/org0/orderers/${ORDERER}/tls/tlscacerts/* /tmp/hyperledger/org0/orderers/${ORDERER}/tls/ca.crt
@@ -126,7 +150,7 @@ cp ${SCRIPT_DIR}/config/config.yaml /tmp/hyperledger/org0/users/admin/msp/config
 mv /tmp/hyperledger/org0/users/admin/msp/cacerts/* /tmp/hyperledger/org0/users/admin/msp/cacerts/ca-cert.pem
 
 ## Orgs
-for ORG in org1 org2; do
+for ORG in ${ORGS[@]}; do
   docker-compose -f docker-compose.yaml up -d rca-${ORG}
   sleep ${SLEEP_DURATION}
 
@@ -139,10 +163,10 @@ for ORG in org1 org2; do
   mv /tmp/hyperledger/${ORG}/msp/cacerts/* /tmp/hyperledger/${ORG}/msp/cacerts/ca-cert.pem
 
   mkdir -p /tmp/hyperledger/${ORG}/msp/tlscacerts
-  cp /tmp/hyperledger/fabric-ca/${ORG}/ca-cert.pem /tmp/hyperledger/${ORG}/msp/tlscacerts/ca.crt
+  cp /tmp/hyperledger/fabric-ca/tls/ca-cert.pem /tmp/hyperledger/${ORG}/msp/tlscacerts/ca.crt
 
   mkdir -p /tmp/hyperledger/${ORG}/tlsca
-  cp /tmp/hyperledger/fabric-ca/${ORG}/ca-cert.pem /tmp/hyperledger/${ORG}/tlsca/tlsca-cert.pem
+  cp /tmp/hyperledger/fabric-ca/tls/ca-cert.pem /tmp/hyperledger/${ORG}/tlsca/tlsca-cert.pem
 
   mkdir -p /tmp/hyperledger/${ORG}/ca
   cp /tmp/hyperledger/fabric-ca/${ORG}/ca-cert.pem /tmp/hyperledger/${ORG}/ca/ca-cert.pem
@@ -154,7 +178,7 @@ for ORG in org1 org2; do
     fabric-ca-client register --caname rca-${ORG} --id.name ${ORG}-user --id.secret ${ORG}-user-pw --id.type client && \
     fabric-ca-client register --caname rca-${ORG} --id.name ${ORG}-admin --id.secret ${ORG}-admin-pw --id.type admin"
 
-  for PEER in peer1 peer2; do
+  for PEER in ${PEERS[@]}; do
     run_ca "
       export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/${ORG}/ca-cert.pem && \
       export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/${ORG} && \
@@ -171,10 +195,10 @@ for ORG in org1 org2; do
     mv /tmp/hyperledger/${ORG}/peers/${PEER}/msp/cacerts/* /tmp/hyperledger/${ORG}/peers/${PEER}/msp/cacerts/ca-cert.pem
 
     run_ca "
-      export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/${ORG}/ca-cert.pem && \
+      export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/fabric-ca/tls/ca-cert.pem && \
       export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/${ORG}/peers/${PEER} && \
       export FABRIC_CA_CLIENT_MSPDIR=tls && \
-      fabric-ca-client enroll -u https://${PEER}-${ORG}:${PEER}-${ORG}-pw@rca-${ORG}:7054 --caname rca-${ORG} \
+      fabric-ca-client enroll -u https://${PEER}-${ORG}:${PEER}-${ORG}-pw@ca-tls:7054 --caname ca-tls \
         --enrollment.profile tls --csr.hosts ${PEER}-${ORG}"
 
     cp /tmp/hyperledger/${ORG}/peers/${PEER}/tls/tlscacerts/* /tmp/hyperledger/${ORG}/peers/${PEER}/tls/ca.crt
@@ -207,14 +231,20 @@ run_tools "
   export FABRIC_CFG_PATH=/tmp/hyperledger/config && \
   configtxgen -profile ChannelUsingBFT -outputBlock /tmp/hyperledger/config/${CHANNEL_NAME}.block -channelID ${CHANNEL_NAME}"
 
-docker-compose -f docker-compose.yaml up -d orderer1-org0 orderer2-org0 orderer3-org0 orderer4-org0
-docker-compose -f docker-compose.yaml up -d peer1-org1 peer2-org1 peer1-org2 peer2-org2
-
-docker-compose -f docker-compose.yaml up -d cli-org0 cli-org1 cli-org2
+docker-compose -f docker-compose.yaml up -d \
+  ${ORDERERS[@]/%/-org0} cli-org0 \
+  $(
+    for org in "${ORGS[@]}"; do
+      for peer in "${PEERS[@]}"; do
+        echo "${peer}-${org}"
+      done
+      echo "cli-${org}"
+    done
+  )
 sleep ${SLEEP_DURATION}
 
 # Join channel
-for ORDERER in orderer1 orderer2 orderer3 orderer4; do
+for ORDERER in ${ORDERERS[@]}; do
   docker exec \
     cli-org0 \
     osnadmin channel join --channelID ${CHANNEL_NAME} -o ${ORDERER}-org0:9443 \
@@ -224,8 +254,8 @@ for ORDERER in orderer1 orderer2 orderer3 orderer4; do
       --client-key /tmp/hyperledger/org0/orderers/${ORDERER}/tls/server.key
 done
 
-for ORG in org1 org2; do
-  for PEER in peer1 peer2; do
+for ORG in ${ORGS[@]}; do
+  for PEER in ${PEERS[@]}; do
     docker exec \
       -e CORE_PEER_ADDRESS=${PEER}-${ORG}:7051 \
       cli-${ORG} \
@@ -264,7 +294,7 @@ done
 # done
 
 # Package chaincode
-for ORG in org1 org2; do
+for ORG in ${ORGS[@]}; do
   docker exec \
     cli-${ORG} \
     peer lifecycle chaincode package ${CHAINCODE_NAME}.tar.gz \
@@ -273,12 +303,13 @@ for ORG in org1 org2; do
 done
 
 # Install chaincode
-for ORG in org1 org2; do
+for ORG in ${ORGS[@]}; do
   docker exec \
     cli-${ORG} \
     peer lifecycle chaincode install ${CHAINCODE_NAME}.tar.gz
 done
 
+sleep ${SLEEP_DURATION}
 docker exec \
   cli-org1 \
   peer lifecycle chaincode queryinstalled >&log.txt
@@ -287,7 +318,7 @@ PACKAGE_ID=$(sed -n '/Package/{s/^Package ID: //; s/, Label:.*$//; p;}' log.txt)
 echo PackageID is ${PACKAGE_ID}
 
 # Approve chaincode
-for ORG in org1 org2; do
+for ORG in ${ORGS[@]}; do
   docker exec \
     cli-${ORG} \
     peer lifecycle chaincode approveformyorg -o orderer1-org0:7050 \
@@ -318,11 +349,12 @@ docker exec \
     --ordererTLSHostnameOverride orderer1-org0 --tls \
     --cafile /tmp/hyperledger/org0/tlsca/tlsca-cert.pem \
     --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} \
-    --peerAddresses peer1-org1:7051 --tlsRootCertFiles /tmp/hyperledger/org1/tlsca/tlsca-cert.pem \
-    --peerAddresses peer1-org2:7051 --tlsRootCertFiles /tmp/hyperledger/org2/tlsca/tlsca-cert.pem \
+    $(for ORG in ${ORGS[@]}; do
+      echo "--peerAddresses peer1-${ORG}:7051 --tlsRootCertFiles /tmp/hyperledger/${ORG}/tlsca/tlsca-cert.pem"
+    done) \
     --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_SEQUENCE} --init-required
 
-for ORG in org1 org2; do
+for ORG in ${ORGS[@]}; do
   docker exec \
     cli-${ORG} \
     peer lifecycle chaincode querycommitted --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME}
@@ -336,8 +368,9 @@ docker exec \
     --ordererTLSHostnameOverride orderer1-org0 --tls \
     --cafile /tmp/hyperledger/org0/tlsca/tlsca-cert.pem \
     --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} \
-    --peerAddresses peer1-org1:7051 --tlsRootCertFiles /tmp/hyperledger/org1/tlsca/tlsca-cert.pem \
-    --peerAddresses peer1-org2:7051 --tlsRootCertFiles /tmp/hyperledger/org2/tlsca/tlsca-cert.pem \
+    $(for ORG in ${ORGS[@]}; do
+      echo "--peerAddresses peer1-${ORG}:7051 --tlsRootCertFiles /tmp/hyperledger/${ORG}/tlsca/tlsca-cert.pem"
+    done) \
     --isInit -c '{"Args":[]}'
 
 # Query chaincode
@@ -354,8 +387,9 @@ docker exec \
   peer chaincode invoke -o orderer1-org0:7050 --tls \
     --cafile /tmp/hyperledger/org0/tlsca/tlsca-cert.pem \
     --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} \
-    --peerAddresses peer1-org1:7051 --tlsRootCertFiles /tmp/hyperledger/org1/tlsca/tlsca-cert.pem \
-    --peerAddresses peer1-org2:7051 --tlsRootCertFiles /tmp/hyperledger/org2/tlsca/tlsca-cert.pem \
+    $(for ORG in ${ORGS[@]}; do
+      echo "--peerAddresses peer1-${ORG}:7051 --tlsRootCertFiles /tmp/hyperledger/${ORG}/tlsca/tlsca-cert.pem"
+    done) \
     -c '{"Args":["addMarks","Alice","68","84","89"]}'
 
 # Query chaincode
